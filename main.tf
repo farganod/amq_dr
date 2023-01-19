@@ -40,6 +40,7 @@ resource "aws_mq_broker" "secondary" {
 resource "rabbitmq_federation_upstream" "federation" {
   provider = rabbitmq.secondary
   depends_on = [
+    aws_mq_broker.primary,
     aws_mq_broker.secondary
   ]
   name = "primary_federation"
@@ -56,6 +57,7 @@ resource "rabbitmq_federation_upstream" "federation" {
 resource "rabbitmq_policy" "policy" {
   provider = rabbitmq.secondary
   depends_on = [
+    aws_mq_broker.primary,
     aws_mq_broker.secondary
   ]
   name  = "federate-pri"
@@ -76,6 +78,7 @@ resource "rabbitmq_policy" "policy" {
 resource "rabbitmq_queue" "demo" {
   provider = rabbitmq.secondary
   depends_on = [
+    aws_mq_broker.primary,
     aws_mq_broker.secondary
   ]
   name  = "demo"
@@ -91,6 +94,7 @@ resource "rabbitmq_queue" "demo" {
 resource "rabbitmq_binding" "bind" {
   provider = rabbitmq.secondary
   depends_on = [
+    aws_mq_broker.primary,
     aws_mq_broker.secondary
   ]
   source           = "amq.direct"
