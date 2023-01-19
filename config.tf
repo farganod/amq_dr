@@ -9,11 +9,32 @@
 #  }
 #}
 
-provider "aws"{
-    region = var.region
+terraform {
+  required_providers {
+    rabbitmq = {
+      source  = "cyrilgdn/rabbitmq"
+    }
+  }
 }
 
 provider "aws"{
-    alias = "dr"
-    region = var.dr_region
+  region = var.region
+}
+
+provider "aws"{
+  alias = "dr"
+  region = var.dr_region
+}
+
+provider "rabbitmq" {
+  endpoint = aws_mq_broker.primary.instances.0.console_url
+  username = var.user
+  password = var.password
+}
+
+provider "rabbitmq" {
+  alias = "secondary"
+  endpoint = aws_mq_broker.secondary.instances.0.console_url
+  username = var.user
+  password = var.password
 }

@@ -23,3 +23,8 @@ variable "password" {
   description = "Admin user password"
   default     = "examplepassword"
 }
+
+variable "regex" {
+  description = "Regular expression filter for federation"
+  default     = "^amq\\."
+}

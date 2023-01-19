@@ -36,13 +36,66 @@ resource "aws_mq_broker" "secondary" {
   }
 }
 
-resource "null_resource" "execute" {
+#Creates the federation on the secondary broker to the primary
+resource "rabbitmq_federation_upstream" "federation" {
+  provider = rabbitmq.secondary
   depends_on = [
-    aws_mq_broker.primary,
     aws_mq_broker.secondary
   ]
-  provisioner "local-exec" {
-    command = "py federate.py ${var.user} ${var.password} ${aws_mq_broker.secondary.instances.0.console_url} ${aws_mq_broker.primary.instances.0.endpoints.0}"
-  }
+  name = "primary_federation"
+  vhost = "/"
 
+  definition {
+    uri = "amqps://${var.user}:${var.password}@${split("//",aws_mq_broker.primary.instances.0.endpoints.0)[1]}"
+    ack_mode = "on-confirm"
+    expires = 3600000
+  }
+}
+
+#Creates the policy to enable all federation upstream based on regex filter variable
+resource "rabbitmq_policy" "policy" {
+  provider = rabbitmq.secondary
+  depends_on = [
+    aws_mq_broker.secondary
+  ]
+  name  = "federate-pri"
+  vhost = "/"
+
+  policy {
+    pattern  = var.regex
+    priority = 1
+    apply_to = "exchanges"
+
+    definition = {
+      federation-upstream-set = "all"
+    }
+  }
+}
+
+#Creates a demo queue on the secondary broker
+resource "rabbitmq_queue" "demo" {
+  provider = rabbitmq.secondary
+  depends_on = [
+    aws_mq_broker.secondary
+  ]
+  name  = "demo"
+  vhost = "/"
+
+  settings {
+    durable     = true
+    auto_delete = false
+  }
+}
+
+#Binds the queue to the amq.direct exchange for demo purposes
+resource "rabbitmq_binding" "bind" {
+  provider = rabbitmq.secondary
+  depends_on = [
+    aws_mq_broker.secondary
+  ]
+  source           = "amq.direct"
+  vhost            = "/"
+  destination      = "${rabbitmq_queue.demo.name}"
+  destination_type = "queue"
+  routing_key      = "#"
 }
